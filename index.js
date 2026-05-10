@@ -1,6 +1,6 @@
 // === Constants ===
 const BASE = "https://fsa-crud-2aa9294fe819.herokuapp.com/api";
-const COHORT = ""; // Make sure to change this!
+const COHORT = "/2604-Kyler"; // Make sure to change this!
 const API = BASE + COHORT;
 
 // === State ===
@@ -57,7 +57,35 @@ async function getGuests() {
   }
 }
 
+/** Deletes the party with the given ID via the API */
+async function deleteParty(id) {
+  try {
+    await fetch(API + "/events/" + id, {
+      method: "DELETE",
+    });
+    selectedParty = undefined;
+    await getParties();
+  } catch (e) {
+    console.error(e);
+  }
+}
+
 // === Components ===
+
+/** Party name that shows more details about the party when clicked */
+function PartyListItem(party) {
+  const $li = document.createElement("li");
+
+  if (party.id === selectedParty?.id) {
+    $li.classList.add("selected");
+  }
+
+  $li.innerHTML = `
+    <a href="#selected">${party.name}</a>
+  `;
+  $li.addEventListener("click", () => getParty(party.id));
+  return $li;
+}
 
 /** Party name that shows more details about the party when clicked */
 function PartyListItem(party) {
@@ -113,8 +141,8 @@ function GuestList() {
   const $ul = document.createElement("ul");
   const guestsAtParty = guests.filter((guest) =>
     rsvps.find(
-      (rsvp) => rsvp.guestId === guest.id && rsvp.eventId === selectedParty.id
-    )
+      (rsvp) => rsvp.guestId === guest.id && rsvp.eventId === selectedParty.id,
+    ),
   );
 
   // Simple components can also be created anonymously:
@@ -127,7 +155,42 @@ function GuestList() {
 
   return $ul;
 }
+/** Form that allows users to input information about a new party */
+function NewPartyForm() {
+  const $form = document.createElement("form");
+  $form.innerHTML = `
+    <label>
+      Name
+      <input name="name" required />
+    </label>
+    <label>
+      Description
+      <input name="description" required />
+    </label>
+    <label>
+      Date
+      <input name="date" type="date" required />
+    </label>
+    <label>
+      Location
+      <input name="location" required />
+    </label>
+    <button>Add party</button>
+  `;
+  $form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const data = new FormData($form);
+    const date = new Date(data.get("date")).toISOString();
+    addParty({
+      name: data.get("name"),
+      description: data.get("description"),
+      date,
+      location: data.get("location"),
+    });
+  });
 
+  return $form;
+}
 // === Render ===
 function render() {
   const $app = document.querySelector("#app");
@@ -137,6 +200,8 @@ function render() {
       <section>
         <h2>Upcoming Parties</h2>
         <PartyList></PartyList>
+        <h3>Add a new party</h3>
+        <NewPartyForm></NewPartyForm>
       </section>
       <section id="selected">
         <h2>Party Details</h2>
@@ -146,6 +211,7 @@ function render() {
   `;
 
   $app.querySelector("PartyList").replaceWith(PartyList());
+  $app.querySelector("NewPartyForm").replaceWith(NewPartyForm());
   $app.querySelector("SelectedParty").replaceWith(SelectedParty());
 }
 
